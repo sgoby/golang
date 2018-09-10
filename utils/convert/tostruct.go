@@ -7,15 +7,27 @@ import (
 
 //
 func InterfaceToStruct(vmap interface{}, mstuct interface{}) (err error) {
+	defer func() {
+		if panidErr := recover(); panidErr != nil {
+			err = fmt.Errorf("%v", panidErr)
+		}
+	}()
 	if vmap == nil || reflect.TypeOf(vmap) == nil {
 		return fmt.Errorf("The nil value can not InterfaceToStruct....")
 	}
 	//
 	vmapValue := reflect.ValueOf(vmap)
 	if vmapValue.Kind() != reflect.Map {
-		return fmt.Errorf("input 0 is not Map")
+		return fmt.Errorf("the source interface type is not Map")
+	}
+	keys := vmapValue.MapKeys()
+	if keys[0].Kind() != reflect.String {
+		return fmt.Errorf("the map key type must string")
 	}
 	newValue := reflect.ValueOf(mstuct)
+	if newValue.Kind() != reflect.Ptr || newValue.Pointer() == 0 {
+		return fmt.Errorf("Target stuct must be a pointer")
+	}
 	return valueToValue(vmapValue, newValue)
 }
 
@@ -48,7 +60,10 @@ func valueToValue(vmapValue reflect.Value, mstuct reflect.Value) (err error) {
 		}
 		//=========================以下部分是类型不相等的===================================
 	} else if isBaseType(vmapValue.Kind()) && isBaseType(mstuct.Kind()) {
-		nVal := vmapValue.Convert(mstuct.Type())
+		nVal, err := valueConvert(vmapValue, mstuct.Type())
+		if err != nil {
+			return err
+		}
 		mstuct.Set(nVal)
 		//
 	} else if vmapValue.Kind() == reflect.Interface {
@@ -56,7 +71,10 @@ func valueToValue(vmapValue reflect.Value, mstuct reflect.Value) (err error) {
 		v := reflect.ValueOf(i)
 		//
 		if isBaseType(v.Kind()) {
-			nVal := v.Convert(mstuct.Type())
+			nVal, err := valueConvert(v, mstuct.Type())
+			if err != nil {
+				return err
+			}
 			mstuct.Set(nVal)
 		} else {
 			if err := valueToValue(v, mstuct); err != nil {
@@ -88,6 +106,16 @@ func valueToValue(vmapValue reflect.Value, mstuct reflect.Value) (err error) {
 		return fmt.Errorf("Not support %s  Convert to %s ", vmapValue.Kind(), mstuct.Kind())
 	}
 	return nil
+}
+
+//
+func valueConvert(v reflect.Value, t reflect.Type) (newVal reflect.Value, err error) {
+	defer func() {
+		if panidErr := recover(); panidErr != nil {
+			err = fmt.Errorf("'%v' %v", v, panidErr)
+		}
+	}()
+	return v.Convert(t), nil
 }
 
 /*
@@ -152,4 +180,3 @@ func getStructFields(val reflect.Value) []reflect.StructField {
 	}
 	return slicStructField
 }
-
