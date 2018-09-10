@@ -5,6 +5,11 @@ import (
 	"reflect"
 )
 
+var specialType []reflect.Kind = []reflect.Kind{
+	reflect.Array, reflect.Func, reflect.Map, reflect.Slice,
+	reflect.Struct, reflect.UnsafePointer, reflect.Ptr, reflect.Chan,
+	reflect.Complex64, reflect.Complex128, reflect.Interface,
+}
 //
 func InterfaceToStruct(vmap interface{}, mstuct interface{}) (err error) {
 	defer func() {
@@ -122,20 +127,7 @@ func valueConvert(v reflect.Value, t reflect.Type) (newVal reflect.Value, err er
 判断是否为基础类型,跟据需要可自行扩展
 */
 func isBaseType(k reflect.Kind) bool {
-	var notbase []reflect.Kind
-	notbase = append(notbase, reflect.Array)
-	notbase = append(notbase, reflect.Func)
-	notbase = append(notbase, reflect.Map)
-	notbase = append(notbase, reflect.Slice)
-	notbase = append(notbase, reflect.Struct)
-	notbase = append(notbase, reflect.UnsafePointer)
-	notbase = append(notbase, reflect.Ptr)
-	notbase = append(notbase, reflect.Chan)
-	notbase = append(notbase, reflect.Complex64)
-	notbase = append(notbase, reflect.Complex128)
-	notbase = append(notbase, reflect.Interface)
-	//
-	for _, vk := range notbase {
+	for _, vk := range specialType {
 		if k == vk {
 			return false
 		}
